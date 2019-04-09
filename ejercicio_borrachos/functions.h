@@ -10,7 +10,8 @@ using namespace std;
 // Why do you add the critical directive to cont variable in parallel mode?
 
 // Busqueda secuencial modo sobrio
-void sober_search(int n, long boy_position, bool *founded, int *founded_position, int *matrix){
+// void sober_search(int n, long boy_position, bool *founded, int *founded_position, int *matrix){
+std::pair<int,int> sober_search(int n, long boy_position, bool *founded, int *founded_position, int *matrix){
 
 	printf("Secuential mode \n");
 
@@ -21,8 +22,13 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 	double t2;
 
 	bool local_founded_seq = false; 
-	int local_founded_position_seq = 0;
+	// int local_founded_position_seq = 0;
 	int cont_seq = 1;
+
+	// coordenates of boy 
+	std::pair<int, int> local_founded_position_seq(-1,-1);
+
+	// cout << location.second << endl;
 
 	// Start search
 	printf("Start search in sequential sober mode \n");
@@ -49,7 +55,7 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 				cont_seq = 0;
 
 				local_founded_seq = true;
-				local_founded_position_seq = index;
+				local_founded_position_seq = std::pair<int, int> (i,j);
 
 				//break
 				// break;
@@ -59,6 +65,7 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 
 	}
 
+	// cout << local_founded_position_seq.first << endl;
 
 	// Finish search and show execution time
 	t2 = omp_get_wtime();
@@ -73,8 +80,9 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 
 	int cont = 1;
 	bool local_founded_par = false; 
-	int local_founded_position_par = 0;
+	// int local_founded_position_par = 0;
 	// int tid = 0;
+	std::pair<int, int> local_founded_position_par(-1,-1);
 
 	t1 = omp_get_wtime();
 
@@ -129,7 +137,8 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 					}
 
 					local_founded_par = true;
-					local_founded_position_par = index;
+					// local_founded_position_par = index;
+					local_founded_position_par = std::pair<int, int>(i,j);
 
 					//break
 					// break;
@@ -154,14 +163,18 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 
 		// Set variables
 		*founded = true;
-		*founded_position = local_founded_position_seq;
+		// *founded_position = local_founded_position_seq;
 		// cont = false;
+
+		return local_founded_position_seq;
 
 	}
 
 	else{
 
-		local_founded_seq ? printf("Parallel mode not found the boy \n") : printf("Sequential mode not found the boy \n");
+		// local_founded_seq ? printf("Parallel mode not found the boy \n") : printf("Sequential mode not found the boy \n");
+
+		return local_founded_position_seq;
 
 	}
 }
@@ -172,32 +185,55 @@ void sober_search(int n, long boy_position, bool *founded, int *founded_position
 // Analize cristobal's code
 
 // Busqueda secuencial en modo borracho
-void drunk_search(const long boy_position, bool *founded, const int matrix_size, int *founded_position, int *matrix){
+void drunk_search(const long boy_position, bool *founded, const int matrix_size, int *founded_position, int *matrix, const int n){
 
 	// Service fro create random number
 	random_device r;
 
 	// Counter
-	int count = 1;
+	int count = 0;
 
 	double t1,t2;
 
 	bool local_founded_seq = false; 
 	int local_founded_position_seq = 0;
 
+	long rn;
+
+	int row, col;
+	int index;
+
 	printf("Start seq mode \n");
+
+	// int ra = rand() % (matrix_size-1);
+	row = r() % n;
+	col = r() % n;
+
+	// printf("%i, %i \n", row, col);
+
+	index = row*n+col;
+
+	// Get first matrix[rn value]
+	int val = matrix[index];
 
 	// Start time
 	t1 = omp_get_wtime();
 
 	// While boy is not founded
-	while(!local_founded_seq){
+	while(val == 0 && !local_founded_seq){
+
+		row = r() % n;
+		col = r() % n;
+
+		index = row*n+col;
+
+		// printf("while: %i, %i \n", row, col);
 
 		// int ra = rand() % (matrix_size-1);
-		long rn = r() % matrix_size;
+		// rn = r() % matrix_size;
 
 		// if random position is equal to boy position
-		if(matrix[rn] == 1){
+		if(matrix[index] == 1){
 
 			// Set variables
 			// *founded = true;
@@ -205,6 +241,7 @@ void drunk_search(const long boy_position, bool *founded, const int matrix_size,
 
 			local_founded_seq = true;
 			local_founded_position_seq = rn;
+			val = 1;
 			//break
 			// break;
 
@@ -215,47 +252,153 @@ void drunk_search(const long boy_position, bool *founded, const int matrix_size,
 
 	}
 
+	// printf("val value: %i\n", val);
+
 	t2 = omp_get_wtime();
 	printf("Executng time for sequential search in drunk mode: %f (msec) \n ", (1000*(t2-t1)));
 
 	// Print message
 	printf("Number of Iterations: %i \n", count);
 
+
+
+	// Parallel mode
+
+
+
 	// Counter
-	count = 1;
+	count = 0;
 
 	printf("Start parallel mode \n");
 
 	bool local_founded_par = false; 
 	int local_founded_position_par = 0;
+	// int tid = 0;
+	int go = true;
 
 	// Start time
 	t1 = omp_get_wtime();
 
+	// random_device r;
+	std::vector<std::default_random_engine> generators;
+	for (int i = 0, N = omp_get_max_threads(); i < N; ++i) {
+	    generators.emplace_back(default_random_engine(r()));
+	}
+
+	// int N = omp_get_num_threads();
+	// vector<int> v(N);
+
+	// int row, col;
+	// int val_par;
+	// int index;
+
 	// Parallel mode
-	#pragma omp parallel 
+	#pragma omp parallel shared(go)
 
-	// While boy is not founded
-	while(!local_founded_par){
+	{
 
+		// int row, col;
+		int tid = omp_get_thread_num();
 		// int ra = rand() % (matrix_size-1);
-		long rn = r() % matrix_size;
 
-		// if random position is equal to boy position
-		if(matrix[rn] == 1){
+		// int rn = r() % matrix_size;
 
-			// Set variables
-			// *founded = true;
-			// *founded_position = rn;
-			local_founded_par = true;
-			local_founded_position_par = rn;
-			//break
-			// break;
+		// printf("random number thread %i: %i \n", tid, val);
+
+		default_random_engine& engine = generators[tid];
+
+		uniform_int_distribution<int> uniform_dist(0, n-1);
+
+		// row, column of thread
+		row = uniform_dist(engine);
+		col = uniform_dist(engine);
+
+		// printf("%i\n", );
+
+		// Get index
+		index = row * n + col;
+
+		// get value with index
+		int val_par = matrix[index];
+
+		// printf("INITIAL. row, colum of thread %i: %i, %i. val: %i \n", tid, row, col, val_par);
+		// cout << uniform_dist(engine) << endl;
+
+		// Perform heavy calculations
+		// cout << uniform_int_distribution<int> uniform_dist(1, n) << endl;
+
+		// cout << uniform_int_distribution<int> uniform_dist(1, n) << endl;
+
+		// v[i] = uniform_dist(engine); // I assume this is thread unsafe
+
+		// int val = matrix[rn];
+
+		// While boy is not founded
+		while(val_par == 0 && go){
+
+			// row, column of thread
+			row = uniform_dist(engine);
+			col = uniform_dist(engine);
+
+			// printf("%i\n", );
+
+			// Get index
+			index = row * n + col;
+
+			// get value with index
+			val_par = matrix[index];
+
+			// printf("while. row, colum of thread %i: %i, %i. val: %i \n", tid, row, col, val_par);
+
+			// default_random_engine& engine = generators[omp_get_thread_num()];
+
+			// // Perform heavy calculations
+			// uniform_int_distribution<int> uniform_dist(1, 100);
+			// v[i] = uniform_dist(engine); // I assume this is thread unsafe
+
+			// int ra = rand() % (matrix_size-1);
+			// long rn = r() % matrix_size;
+
+			// tid = omp_get_thread_num();
+
+			// printf("random number for thread %i: %li \n", tid, rn);
+
+			// if random position is equal to boy position
+			// if(matrix[rn] == 1){
+
+			// 	// Set variables
+			// 	// *founded = true;
+			// 	// *founded_position = rn;
+			// 	local_founded_par = true;
+			// 	local_founded_position_par = rn;
+			// 	//break
+			// 	// break;
+
+			// }
+
+			// add 1 to counter
+			#pragma omp critical
+			{
+
+				++count;
+
+			}
 
 		}
 
-		// add 1 to counter
-		++count;
+		// If one thread found the boy
+		if(val_par != 0){
+
+			local_founded_par = true;
+			
+			// Set go on false for every threads
+			#pragma omp critical
+			{
+				go = false;
+			}
+
+		}
+
 
 	}
 

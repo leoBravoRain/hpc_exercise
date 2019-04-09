@@ -11,6 +11,8 @@
 
 #include "functions.h"
 
+#include <unistd.h> // sleep function
+
 using namespace std;
 
 // ./prog n grupo modo
@@ -66,7 +68,9 @@ int main(int argc, char *argv[]){
 	// busqueda sobrio
 	if(modo == 0){
 
-		printf("Sobrio mode\n");
+		printf("Sobrio mode\n"); fflush(stdout);
+
+		// sleep(2);
 
 		// Sequential
 		sober_search(n, boy_position, &founded, &founded_position, matrix);
@@ -79,7 +83,7 @@ int main(int argc, char *argv[]){
 		printf("Drunk mode \n");
 
 		// Drunked Sequential
-		drunk_search(boy_position, &founded, matrix_size, &founded_position, matrix);
+		drunk_search(boy_position, &founded, matrix_size, &founded_position, matrix, n);
 
 	}
 
