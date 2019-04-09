@@ -27,14 +27,18 @@ int main(int argc, char *argv[]){
 
 	// Matrix size
 	int n = atoi(argv[1]);
-	int grupo = atoi(argv[2]);
+	int group = atoi(argv[2]);
 	int modo = atoi(argv[3]);
+
+	// Set number of threads
+	// omp_set_num_threads
+	omp_set_num_threads(group);
 
 	// Flatten matrix
 	long matrix_size = (long)n*n;
 
 	printf("User input for n: %i \n", n);
-	printf("Matrix size: %i \n", matrix_size);
+	printf("Matrix size: %li \n", matrix_size);
 
 	// Create the matrix
 	int *matrix = new int[matrix_size] {};
@@ -48,7 +52,7 @@ int main(int argc, char *argv[]){
 	// int r = (int)r()%matrix_size;
 	long boy_position = r() % matrix_size;
 
-	printf("Boy position: %i \n", boy_position);
+	printf("Boy position: %li \n", boy_position);
 
 	// // Set the boy in matrix
 	matrix[boy_position] = 1;
@@ -64,7 +68,8 @@ int main(int argc, char *argv[]){
 
 		printf("Sobrio mode\n");
 
-		seq_sobrio(n, boy_position, &founded, &founded_position);
+		// Sequential
+		sober_search(n, boy_position, &founded, &founded_position, matrix);
 
 	}
 
@@ -74,12 +79,13 @@ int main(int argc, char *argv[]){
 		printf("Drunk mode \n");
 
 		// Drunked Sequential
-		seq_borracho(boy_position, &founded, matrix_size, &founded_position);
+		drunk_search(boy_position, &founded, matrix_size, &founded_position, matrix);
 
 	}
 
 	// Print messagge
-	founded ? printf("Boy was founded in position: %i \n", founded_position) : printf("Boy wasn't founded.\n");
+	// founded ? printf("Boy was founded in position: %i \n", founded_position) : printf("Boy wasn't founded.\n");
+	founded ? printf("Boy was founded \n") : printf("Boy wasn't founded.\n");
 
 	// return value
 	return 0;
