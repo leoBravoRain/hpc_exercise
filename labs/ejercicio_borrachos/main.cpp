@@ -83,8 +83,9 @@ int main(int argc, char *argv[]){
 		printf("Drunk mode \n");
 
 		// Drunked Sequential
-		drunk_search(boy_position, &founded, matrix_size, &founded_position, matrix, n);
+		std::pair<int, int>  boy_pos = drunk_search(boy_position, &founded, matrix_size, &founded_position, matrix, n, group);
 
+		// cout << (boy_pos.first*n+boy_pos.second) << endl;
 	}
 
 	// Print messagge
