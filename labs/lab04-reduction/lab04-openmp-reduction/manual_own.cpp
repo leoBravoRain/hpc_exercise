@@ -3,12 +3,12 @@
 #include <limits.h>
 #include <omp.h>
 
-void init_array(int n, int *a){
+void init_array(int n, double *a){
 
 	// init array
 	for(int i = 0; i < n; ++i){
 
-		a[i] = (int)rand() %10;
+		a[i] = (double)(rand())/(double)RAND_MAX;
 
 	}
 
@@ -24,9 +24,9 @@ void print_a(int n, int *a){
 
 }
 
-int seq_reduction(int *a, int n){
+double seq_reduction(double *a, int n){
 
-	int sum = 0;
+	double sum = 0;
 
 	// reduction: sum
 	for(int i = 0; i < n; ++i){
@@ -39,12 +39,13 @@ int seq_reduction(int *a, int n){
 
 }
 
-int par_reduction(int *a, int n, int nt){
+double par_reduction_manual(double *a, int n, int nt){
 
 	// int sum = 0;
 
-	int *red_array = (int*)malloc(sizeof(int)*nt);
+	double *red_array = (double*)malloc(sizeof(double)*nt);
 
+	// #pragma omp parallel shared(red_array)
 	#pragma omp parallel shared(red_array)
 	{
 
@@ -54,7 +55,7 @@ int par_reduction(int *a, int n, int nt){
 		int start = tid*chunk;
 		int end = tid*chunk + chunk;
 		
-		int thread_sum = 0;
+		double thread_sum = 0.0f;
 
 		// Each thread adds its elements
 		for(int i = start; i < end && i < n; ++i){
@@ -68,28 +69,14 @@ int par_reduction(int *a, int n, int nt){
 		// Wait all threads have their values
 		#pragma omp barrier
 
-		// printf("thread %i sum: %i\n", tid, red_array[tid]);
-
-		// if(tid == 0){
-
-		// 	for(int i = 0; i < nt; i++){
-
-		// 		printf("red array [%i] value: %i\n", i, red_array[i]);
-		// 	}
-
-		// }
+		
 		// Reduction in parallel
 		// this is O(log2(n))
 		int l = nt/2;
 
-		// printf("l value 0: %i\n", l);
-
 		while(l > 0){
 
-			// printf("l value: %i\n", l );
 			if(tid < l){
-
-				// printf("thread %i, update its value from %i to %i\n", tid, red_array[tid + l], red_array[tid + l] + red_array[tid] );
 
 				red_array[tid] = red_array[tid] + red_array[tid + l];
 
@@ -109,6 +96,20 @@ int par_reduction(int *a, int n, int nt){
 
 }
 
+double par_reduction_auto(double *a, int n, int nt){
+
+	double sum = 0.0f;
+
+	#pragma omp parallel for reduction(+: sum)
+	for(int i = 0; i < n; ++i){
+
+		sum += a[i];
+
+	}
+
+	return sum;
+}
+
 int main(int argc, char *argv[]){
 
 	if(argc != 3){
@@ -124,41 +125,69 @@ int main(int argc, char *argv[]){
     omp_set_num_threads(nt);
 
 	// define
-	int *array = (int*)malloc(sizeof(int) * n * n);
+	double *array = (double*)malloc(sizeof(double) * n);
 
+	// Init array
 	init_array(n, array);
 
-	// print_a(n, array);
-
-	int sum;
+	// define
+	double sum, par_sum, par_sum_auto;
 	float t_aux, t1;
-	// Seq reduction
-    printf("Seq reduction \n");
 
+	// Seq reduction
+    // printf("Seq reduction \n");
+
+    // aux time
     t_aux = omp_get_wtime();
 
+    // call to seq reduction
     sum = seq_reduction(array, n);
 
+    // final time
     t1 = omp_get_wtime() - t_aux;
 
-    printf("result of reduction: %i\n", sum);
+    // print results
+    // printf("result of reduction: %f\n", sum);
+    printf("Time for seq reduction: %f [ms]\n", t1*1000);
 
-    printf("Time for seq reduction: %f \n", t1);
+    // Paralellized reduction MANUAL
+    // printf("Par reduction \n");
 
-    // Paralellized reduction
-    printf("Par reduction \n");
-
+    // aux time
     t_aux = omp_get_wtime();
 
-    sum = par_reduction(array, n, nt);
+    // par reduction
+    par_sum = par_reduction_manual(array, n, nt);
 
+    // final time
     t1 = omp_get_wtime() - t_aux;
 
-    printf("result of reduction: %i\n", sum);
+    // print results
+    // printf("result of reduction: %f\n", par_sum);
+    printf("Time for manual par reduction: %f \n [ms]", t1*1000);
+    printf("difference between reduction values: %f\n", sum - par_sum );
 
-    printf("Time for par reduction: %f \n", t1);
+    // Paralellized reduction AUTO
+    // printf("Par reduction \n");
+
+    // aux time
+    t_aux = omp_get_wtime();
+
+    // par reduction
+    par_sum_auto = par_reduction_auto(array, n, nt);
+
+    // final time
+    t1 = omp_get_wtime() - t_aux;
+
+    // print results
+    // printf("result of reduction: %f\n", par_sum);
+    printf("Time for auto par reduction: %f \n [ms]", t1*1000);
+    printf("difference between reduction values: %f\n", sum - par_sum_auto );
 
 
+    // free memory
+    free(array);
+    
 	return 0;
 
 }
