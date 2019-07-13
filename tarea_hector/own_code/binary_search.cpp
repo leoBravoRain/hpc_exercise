@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <ctime>
 
+#include <cmath>
+
 #define M 10
 
 // Print array
@@ -95,7 +97,7 @@ int binary_search(int n, int *array, int element, int left, int right){
 void build_sampling_array(int *array, int sampling, int *sampling_array, int n_samp){
 
 	// Iterate in sampling length
-	for(int i = 0; i < n_samp; ++i){
+	for(int i = 0; i <= n_samp; ++i){
 
 		// Assin vale to sampling element
 		sampling_array[i] = array[i*sampling];
@@ -142,6 +144,11 @@ int sampling_binary_search(int n, int *array, int sampling, int element, int *sa
 	// printf("binary search with left: %i and right: %i\n",left, right);
 	// Declare variables
 	int left, right, middle, result;
+	// bool find_in_last_block = false;
+
+	// flag if number it could be in any block
+	bool find_block = false;
+
 	// int middle, result;
 
 	// result
@@ -163,20 +170,24 @@ int sampling_binary_search(int n, int *array, int sampling, int element, int *sa
 
 	// 	// Binary search in the last block
 	// 	// Left = lenght of array - (sampling size - 1)
-	// 	// left = n - (sampling - 1);
+	// 	left = n - (sampling - 1);
 
-	// 	// // Right = length of array - 1
-	// 	// right = n - 1;
+	// 	// Right = length of array - 1
+	// 	right = n - 1;
 
-	// 	// // printf("Binary search in the last block\n");
+	// 	// printf("Binary search in the last block\n");
+	// 	// sequential_search(int left, int right, int *array, int element)
+	// 	result = sequential_search(left, right, array, element);
 
-	// 	// result = binary_search(n, array, element, left, right);
+	// 	// flag variable
+	// 	find_in_last_block = true;
 
 	// }
 
 	// Iteratae until find solution
 	// while(left <= right & !find){
 	while(left <= right){
+	// while(left <= right & !find_in_last_block){
 
 		// printf("left: %i  --  right:  %i\n", left, right);
 		middle = (left + right) >> 1; // biwtsie operation
@@ -189,17 +200,28 @@ int sampling_binary_search(int n, int *array, int sampling, int element, int *sa
 			// if element is between m-1 and m
 			if(element >= sampling_array[middle - 1]){
 
+				// printf("find block smaller\n");
 				// Sequential search in this block (block between m-1 and m)
 				// arguments = left, right, array, element
-				result = sequential_search((middle - 1)*sampling, (middle)*sampling, array, element);
+				// sequential_search(int left, int right, int *array, int element)
+				result = sequential_search(std::max((middle - 1)*sampling, 0), (middle)*sampling, array, element);
+
+				// update flag
+				find_block = true;
 
 				break;
 
 			}
 
-			// printf("%i is smaller than %i, so update right to %i \n", element, array[middle], middle - 1);
-			// update right
-			right = middle - 1;
+			// If is smaller than m-1 element
+			else{
+
+				// printf("%i is smaller than %i, so update right to %i \n", element, array[middle], middle - 1);
+				// update right
+				right = middle - 1;
+
+			}
+
 
 		}
 
@@ -207,11 +229,16 @@ int sampling_binary_search(int n, int *array, int sampling, int element, int *sa
 		else if(element > sampling_array[middle]){
 
 			// if element is between m-1 and m
-			if(element <= sampling_array[middle - 1]){
+			if(element <= sampling_array[middle + 1]){
+
+				// printf("find block greater\n");
 
 				// Sequential search in this block (block between m-1 and m)
 				// arguments = left, right, array, element
-				result = sequential_search((middle)*sampling, (middle + 1)*sampling, array, element);
+				result = sequential_search((middle)*sampling, std::min((middle + 1)*sampling, n), array, element);
+
+				// update flag
+				find_block = true;
 
 				break;
 
@@ -231,12 +258,41 @@ int sampling_binary_search(int n, int *array, int sampling, int element, int *sa
 
 			// printf("The element %i is in %i\n", element, middle );
 
+			// printf("find block equal\n");
+
 			// Update result
 			result =  (middle)*sampling;
 			// find = true;
+
+			// update flag
+			find_block = true;
+
 			break;
 
 		}
+
+	}
+
+	// If elemnt is greater than the last element in sampling array
+	// it can be the element is in the last block
+	// if(!in_firsts_blocks){
+	if(!find_block & element >= sampling_array[n_samp - 1]){
+
+		printf("Maybe it's in the last block\n");
+
+		// Binary search in the last block
+		// Left = lenght of array - (sampling size - 1)
+		left = n - (sampling - 1);
+
+		// Right = length of array - 1
+		right = n - 1;
+
+		// printf("Binary search in the last block\n");
+		// sequential_search(int left, int right, int *array, int element)
+		result = sequential_search(left, right, array, element);
+
+		// // flag variable
+		// find_in_last_block = true;
 
 	}
 
@@ -392,14 +448,19 @@ int main(int argc, char *argv[]){
 	int n, element, sampling_size;
 	// Initialize variabels
 	n = atoi(argv[1]);
+	// n = 5;
 	sampling_size = atoi(argv[2]);
+	// sampling_size = 2;
 
 	// Random element
-	element = rand() % M; ;
-	// element = 0;
+	// element = rand() % M; ;
+	element = 0;
 
 	// Define array
 	// int array [n] = { 0, 1, 2, 3, 4}; 
+
+	// print_array(n, array);
+
 	int array [n];
 
 	// Create array 
@@ -416,7 +477,7 @@ int main(int argc, char *argv[]){
 	// Finish time
 	clock_t end = clock();
 
-  	printf("Binary search: %f [ms]\n", 1000*double(end - begin) / CLOCKS_PER_SEC); 
+  	// printf("Binary search: %f [ms]\n", 1000*double(end - begin) / CLOCKS_PER_SEC); 
 
 	// printf("result: %i\n", result);
 
@@ -424,13 +485,15 @@ int main(int argc, char *argv[]){
 
 
 	// Get length of sampling array
-	int n_samp = n/sampling_size;
+	int n_samp = ceil((double)n/(double)sampling_size);
 
 	// Define sampling array
 	int sampling_array[n_samp];
 
 	// Buidl sampling array
 	build_sampling_array(array, sampling_size, sampling_array, n_samp);
+
+	// print_array(n_samp, sampling_array);
 
 	begin = clock();
 
@@ -444,7 +507,7 @@ int main(int argc, char *argv[]){
 	end = clock();
 
 	// print time
-  	printf("Sampling binary search: %f [ms]\n", 1000*double(end - begin) / CLOCKS_PER_SEC); 
+  	// printf("Sampling binary search: %f [ms]\n", 1000*double(end - begin) / CLOCKS_PER_SEC); 
 
 	// printf("result: %i\n", result_samp);
 
